@@ -1,15 +1,16 @@
 import React from 'react';
-import { BrowserRouter, Switch, Route, Link } from 'react-router-dom';
+import { BrowserRouter, Switch, Route } from 'react-router-dom';
 import './App.css';
 
 import HomePage from './pages/homepage/homepage.component';
+import ShopPage from './pages/shop/shop.component';
+import SignInAndSignUpPage from './pages/sign-in-and-sign-up/sign-in-and-sign-up.component';
+import Header from './component/header/header.component';
+import { auth, createUserProfileDocument } from './firebase/firebase.utils';
 
 const HatsPage = props => (
   <div>
     <h1>HATS PAGE</h1>
-    {/* <Link to='/'>Home</Link>
-    <button onClick={() => props.history.push('/')}>Home</button>
-    <Link to={`${props.match.url}/13`}>TO HATS 13</Link> */}
   </div>
 )
 
@@ -21,18 +22,51 @@ const TopicDetail = props => {
   )
 }
 
-function App() {
-  return (
-    <div>
-      <BrowserRouter>
-        <Switch>
-          <Route exact path='/' component={HomePage} />
-          <Route path='/hats' component={HatsPage} />
-          {/* <Route path='/hats/:hatsId' component={TopicDetail} /> */}
-        </Switch>
-      </BrowserRouter>
-    </div>
-  )
+class App extends React.Component {
+  constructor() {
+    super();
+
+    this.state = {
+      currentUser: null
+    }
+  }
+
+  unsubscribeFromAuth = null
+
+  componentDidMount() {
+    this.unsubscribeFromAuth = auth.onAuthStateChanged(async userAuth => {
+      if (userAuth) {
+        const userRef = await createUserProfileDocument(userAuth);
+        userRef.onSnapshot( snapShot => {
+          this.setState({
+            currentUser: { id: snapShot.id, ...snapShot.data() }
+          })
+        })        
+      } else {
+        this.setState({currentUser: userAuth});
+      }
+    })
+  }
+
+  componentWillUnmount() {
+    this.unsubscribeFromAuth();
+  }
+
+  render () {
+    return (
+      <div>
+        <BrowserRouter>
+          <Header currentUser={this.state.currentUser} />
+          <Switch>
+            <Route exact path='/' component={HomePage} />
+            <Route path='/shop' component={ShopPage} />
+            <Route path='/signin' component={SignInAndSignUpPage} />
+            {/* <Route path='/hats/:hatsId' component={TopicDetail} /> */}
+          </Switch>
+        </BrowserRouter>
+      </div>
+    )
+  }
 }
 
 export default App;
